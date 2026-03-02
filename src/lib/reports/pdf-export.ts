@@ -1,0 +1,114 @@
+import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { createElement } from "react";
+
+const styles = StyleSheet.create({
+  page: { padding: 40, fontFamily: "Helvetica", fontSize: 11 },
+  header: { marginBottom: 20 },
+  title: { fontSize: 24, fontWeight: "bold", color: "#1e293b" },
+  subtitle: { fontSize: 12, color: "#64748b", marginTop: 4 },
+  section: { marginTop: 16, marginBottom: 8 },
+  sectionTitle: { fontSize: 14, fontWeight: "bold", color: "#1e293b", marginBottom: 8 },
+  scoreBox: { backgroundColor: "#f0fdf4", padding: 16, borderRadius: 8, marginBottom: 16 },
+  scoreValue: { fontSize: 36, fontWeight: "bold", color: "#059669" },
+  scoreLabel: { fontSize: 10, color: "#64748b", marginTop: 2 },
+  row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: "#f1f5f9" },
+  label: { color: "#475569" },
+  value: { fontWeight: "bold", color: "#1e293b" },
+  goalRow: { flexDirection: "row", alignItems: "center", paddingVertical: 3 },
+  goalStatus: { width: 70, fontSize: 9, color: "#64748b" },
+  goalTitle: { flex: 1, color: "#334155" },
+  footer: { position: "absolute", bottom: 30, left: 40, right: 40, textAlign: "center", fontSize: 9, color: "#94a3b8" },
+});
+
+interface ReportData {
+  weekStart: Date;
+  weekEnd: Date;
+  score: number;
+  highlights: string | null;
+  planningAccuracy: number | null;
+  summary: {
+    score?: { commits?: { count: number; points: number }; prs?: { count: number; points: number }; issues?: { count: number; points: number }; reviews?: { count: number; points: number }; tweets?: { count: number; points: number }; blogs?: { count: number; points: number } };
+    goals?: { total: number; completed: number; titles: { title: string; status: string }[] };
+  } | null;
+  user: { name: string | null };
+}
+
+export function generateReportPDF(report: ReportData) {
+  const summary = (report.summary || {}) as ReportData["summary"] & Record<string, unknown>;
+  const scoreData = summary?.score || {};
+  const goalsData = summary?.goals || { total: 0, completed: 0, titles: [] };
+
+  const formatDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  return createElement(
+    Document,
+    null,
+    createElement(
+      Page,
+      { size: "A4", style: styles.page },
+      // Header
+      createElement(
+        View,
+        { style: styles.header },
+        createElement(Text, { style: styles.title }, "Weekly Report"),
+        createElement(Text, { style: styles.subtitle }, `${formatDate(report.weekStart)} - ${formatDate(report.weekEnd)} | ${report.user.name || "Member"}`)
+      ),
+      // Score
+      createElement(
+        View,
+        { style: styles.scoreBox },
+        createElement(Text, { style: styles.scoreValue }, `${report.score}/100`),
+        createElement(Text, { style: styles.scoreLabel }, "WEEKLY SCORE")
+      ),
+      // Breakdown
+      createElement(
+        View,
+        { style: styles.section },
+        createElement(Text, { style: styles.sectionTitle }, "Score Breakdown"),
+        ...Object.entries(scoreData).map(([key, val]) =>
+          val && typeof val === "object" && "count" in val
+            ? createElement(
+                View,
+                { style: styles.row, key },
+                createElement(Text, { style: styles.label }, `${key.charAt(0).toUpperCase() + key.slice(1)} (${(val as { count: number }).count})`),
+                createElement(Text, { style: styles.value }, `${(val as { points: number }).points} pts`)
+              )
+            : null
+        )
+      ),
+      // Goals
+      goalsData.titles.length > 0 &&
+        createElement(
+          View,
+          { style: styles.section },
+          createElement(Text, { style: styles.sectionTitle }, `Goals (${goalsData.completed}/${goalsData.total} completed)`),
+          ...goalsData.titles.map((g, i) =>
+            createElement(
+              View,
+              { style: styles.goalRow, key: i },
+              createElement(Text, { style: styles.goalStatus }, g.status),
+              createElement(Text, { style: styles.goalTitle }, g.title)
+            )
+          )
+        ),
+      // Planning Accuracy
+      report.planningAccuracy !== null &&
+        createElement(
+          View,
+          { style: styles.section },
+          createElement(Text, { style: styles.sectionTitle }, "Planning Accuracy"),
+          createElement(Text, { style: styles.value }, `${report.planningAccuracy}%`)
+        ),
+      // Highlights
+      report.highlights &&
+        createElement(
+          View,
+          { style: styles.section },
+          createElement(Text, { style: styles.sectionTitle }, "Highlights"),
+          createElement(Text, { style: styles.label }, report.highlights)
+        ),
+      // Footer
+      createElement(Text, { style: styles.footer }, "Generated by SuperLog - Proof-of-Work Operating System")
+    )
+  );
+}
