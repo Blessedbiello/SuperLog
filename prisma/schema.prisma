@@ -1,0 +1,457 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth Models (NextAuth v5) ───────────────────────────────────────────────
+
+enum Role {
+  MEMBER
+  ADMIN
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  image          String?
+  role           Role      @default(MEMBER)
+  githubUsername  String?
+  twitterHandle  String?
+  bio            String?
+  level          Int       @default(1)
+  xp             Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+
+  projects           Project[]
+  githubActivities   GitHubActivity[]
+  tweets             Tweet[]
+  blogPosts          BlogPost[]
+  goals              Goal[]
+  monthlyObjectives  MonthlyObjective[]
+  calendarEvents     CalendarEvent[]
+  dailyFocuses       DailyFocus[]
+  weeklyReports      WeeklyReport[]
+  rewards            Reward[]       @relation("ReceivedRewards")
+  awardedRewards     Reward[]       @relation("AwardedRewards")
+  streaks            Streak[]
+  badges             Badge[]
+  shoutoutsGiven     Shoutout[]     @relation("ShoutoutsGiven")
+  shoutoutsReceived  Shoutout[]     @relation("ShoutoutsReceived")
+  reactions          Reaction[]
+  notifications      Notification[]
+  onboarding         OnboardingProgress?
+  verificationsBy    Verification[] @relation("VerifiedBy")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Core Domain Models ──────────────────────────────────────────────────────
+
+enum ProjectCategory {
+  MAIN
+  SIDE
+  OPEN_SOURCE
+  COMMUNITY
+}
+
+model Project {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  category    ProjectCategory @default(SIDE)
+  repoUrl     String?
+  userId      String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goals            Goal[]
+  calendarEvents   CalendarEvent[]
+  githubActivities GitHubActivity[]
+
+  @@index([userId])
+}
+
+enum GitHubActivityType {
+  COMMIT
+  PR
+  ISSUE
+  REVIEW
+  RELEASE
+}
+
+model GitHubActivity {
+  id         String             @id @default(cuid())
+  type       GitHubActivityType
+  title      String
+  url        String?
+  repo       String
+  githubId   String             @unique
+  metadata   Json?
+  occurredAt DateTime
+  userId     String
+  projectId  String?
+  createdAt  DateTime           @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project      Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  verification Verification?
+
+  @@index([userId])
+  @@index([occurredAt])
+}
+
+model Tweet {
+  id        String   @id @default(cuid())
+  url       String   @unique
+  content   String?
+  tweetId   String?
+  metrics   Json?
+  tags      String[]
+  postedAt  DateTime?
+  userId    String
+  createdAt DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verification Verification?
+
+  @@index([userId])
+}
+
+model BlogPost {
+  id          String   @id @default(cuid())
+  title       String
+  url         String   @unique
+  platform    String?
+  summary     String?
+  tags        String[]
+  publishedAt DateTime?
+  userId      String
+  createdAt   DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verification Verification?
+
+  @@index([userId])
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model Verification {
+  id               String             @id @default(cuid())
+  status           VerificationStatus @default(PENDING)
+  notes            String?
+  githubActivityId String?            @unique
+  tweetId          String?            @unique
+  blogPostId       String?            @unique
+  verifiedById     String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  githubActivity GitHubActivity? @relation(fields: [githubActivityId], references: [id], onDelete: Cascade)
+  tweet          Tweet?          @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  blogPost       BlogPost?       @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+  verifiedBy     User?           @relation("VerifiedBy", fields: [verifiedById], references: [id])
+}
+
+// ─── Planning & Calendar Models ──────────────────────────────────────────────
+
+enum GoalType {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum GoalStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  MISSED
+  CARRIED_OVER
+}
+
+model Goal {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  type        GoalType   @default(WEEKLY)
+  status      GoalStatus @default(PLANNED)
+  targetDate  DateTime?
+  projectId   String?
+  keyResultId String?
+  userId      String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project        Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  keyResult      KeyResult?      @relation(fields: [keyResultId], references: [id], onDelete: SetNull)
+  calendarEvents CalendarEvent[]
+
+  @@index([userId])
+  @@index([targetDate])
+}
+
+model MonthlyObjective {
+  id     String @id @default(cuid())
+  title  String
+  userId String
+  month  Int
+  year   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keyResults KeyResult[]
+
+  @@index([userId])
+}
+
+model KeyResult {
+  id          String @id @default(cuid())
+  title       String
+  target      Float  @default(1)
+  current     Float  @default(0)
+  objectiveId String
+
+  objective MonthlyObjective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  goals     Goal[]
+}
+
+enum CalendarEventType {
+  FOCUS_BLOCK
+  COMMUNITY_EVENT
+  HACKATHON
+  CONTENT_PUBLISH
+  LEARNING
+  COLLABORATION
+  PERSONAL
+}
+
+enum CalendarEventStatus {
+  SCHEDULED
+  COMPLETED
+  PARTIAL
+  MISSED
+}
+
+model CalendarEvent {
+  id        String              @id @default(cuid())
+  title     String
+  type      CalendarEventType   @default(FOCUS_BLOCK)
+  startTime DateTime
+  endTime   DateTime
+  status    CalendarEventStatus @default(SCHEDULED)
+  goalId    String?
+  projectId String?
+  userId    String
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal    Goal?    @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([startTime, endTime])
+}
+
+model DailyFocus {
+  id     String   @id @default(cuid())
+  date   DateTime @db.Date
+  focus  String
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+// ─── Reports & Scoring Models ────────────────────────────────────────────────
+
+model WeeklyReport {
+  id               String   @id @default(cuid())
+  weekStart        DateTime @db.Date
+  weekEnd          DateTime @db.Date
+  summary          Json?
+  highlights       String?
+  score            Float    @default(0)
+  plannedScore     Float?
+  planningAccuracy Float?
+  userId           String
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@index([userId])
+}
+
+model Reward {
+  id          String   @id @default(cuid())
+  description String
+  amount      Float
+  currency    String   @default("SOL")
+  weekStart   DateTime @db.Date
+  userId      String
+  awardedById String?
+  createdAt   DateTime @default(now())
+
+  user      User  @relation("ReceivedRewards", fields: [userId], references: [id], onDelete: Cascade)
+  awardedBy User? @relation("AwardedRewards", fields: [awardedById], references: [id])
+
+  @@index([userId])
+}
+
+// ─── Social & Gamification Models ────────────────────────────────────────────
+
+enum StreakType {
+  ACTIVITY
+  CONSISTENCY
+  WRITING
+  CODE
+  PLANNING
+}
+
+model Streak {
+  id               String     @id @default(cuid())
+  type             StreakType
+  currentLength    Int        @default(0)
+  longestLength    Int        @default(0)
+  lastActiveDate   DateTime?  @db.Date
+  shieldsAvailable Int        @default(0)
+  userId           String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@index([userId])
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  icon        String?
+  category    String?
+  earnedAt    DateTime @default(now())
+  userId      String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Shoutout {
+  id         String   @id @default(cuid())
+  message    String
+  fromUserId String
+  toUserId   String
+  weekStart  DateTime @db.Date
+  createdAt  DateTime @default(now())
+
+  from User @relation("ShoutoutsGiven", fields: [fromUserId], references: [id], onDelete: Cascade)
+  to   User @relation("ShoutoutsReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([toUserId])
+}
+
+model Reaction {
+  id           String   @id @default(cuid())
+  type         String
+  activityType String
+  activityId   String
+  userId       String
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, activityType, activityId])
+  @@index([activityType, activityId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String
+  title     String
+  message   String?
+  read      Boolean  @default(false)
+  metadata  Json?
+  userId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+// ─── System Models ───────────────────────────────────────────────────────────
+
+model WebhookEvent {
+  id        String   @id @default(cuid())
+  source    String
+  eventType String
+  payload   Json
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([processed])
+}
+
+model OnboardingProgress {
+  id     String @id @default(cuid())
+  userId String @unique
+  steps  Json   @default("{\"profileSetup\":false,\"githubConnected\":false,\"twitterConnected\":false,\"firstProject\":false,\"firstPlan\":false,\"firstLog\":false}")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
