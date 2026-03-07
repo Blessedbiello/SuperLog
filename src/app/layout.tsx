@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/layout/providers";
 import { auth } from "@/lib/auth";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -49,7 +43,7 @@ export default async function RootLayout({
   const session = await auth();
 
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en">
       <body className="min-h-screen bg-background font-sans antialiased">
         <Providers session={session}>{children}</Providers>
       </body>

@@ -37,10 +37,11 @@ export async function PUT(request: NextRequest) {
   }
 
   if (body.id) {
-    await prisma.notification.update({
-      where: { id: body.id },
+    const result = await prisma.notification.updateMany({
+      where: { id: body.id, userId: session.user.id },
       data: { read: true },
     });
+    if (result.count === 0) return errorResponse("Notification not found", 404);
     return successResponse({ success: true });
   }
 

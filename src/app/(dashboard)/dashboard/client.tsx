@@ -30,7 +30,7 @@ interface DashboardClientProps {
     project?: { name: string } | null;
   }[];
   currentFocus: string | null;
-  onboardingSteps: Record<string, boolean> | null;
+  onboardingSteps: OnboardingSteps | null;
   weeklyScores: { date: string; score: number }[];
 }
 
@@ -55,7 +55,10 @@ export function DashboardClient({
     await fetch("/api/daily-focus", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ focus }),
+      body: JSON.stringify({
+        focus,
+        date: new Date().toISOString(),
+      }),
     });
   };
 
@@ -71,7 +74,7 @@ export function DashboardClient({
 
       {/* Onboarding */}
       {onboardingSteps && (
-        <OnboardingChecklist steps={onboardingSteps as OnboardingSteps} />
+        <OnboardingChecklist steps={onboardingSteps} />
       )}
 
       {/* Stats */}

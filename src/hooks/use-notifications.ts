@@ -1,6 +1,7 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
 interface Notification {
   id: string;
@@ -16,7 +17,7 @@ export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = async () => {
     const res = await fetch("/api/notifications");
     if (res.ok) {
       const data = await res.json();
@@ -25,9 +26,11 @@ export function useNotifications() {
       setUnreadCount(notifs.filter((n: Notification) => !n.read).length);
     }
     setLoading(false);
-  }, []);
+  };
 
-  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+  useEffect(() => {
+    void fetchNotifications();
+  }, []);
 
   const markAsRead = async (id: string) => {
     await fetch("/api/notifications", {
@@ -35,7 +38,7 @@ export function useNotifications() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
-    fetchNotifications();
+    void fetchNotifications();
   };
 
   const markAllRead = async () => {
@@ -44,7 +47,7 @@ export function useNotifications() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ markAllRead: true }),
     });
-    fetchNotifications();
+    void fetchNotifications();
   };
 
   return { notifications, unreadCount, loading, markAsRead, markAllRead, refresh: fetchNotifications };

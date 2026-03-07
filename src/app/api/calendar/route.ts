@@ -26,8 +26,9 @@ export async function GET(request: NextRequest): Promise<Response> {
   const events = await prisma.calendarEvent.findMany({
     where: {
       userId: session.user.id,
-      startTime: { gte: start },
-      endTime: { lte: end },
+      // Return events that overlap the requested window.
+      startTime: { lt: end },
+      endTime: { gt: start },
     },
     include: {
       goal: { select: { id: true, title: true } },

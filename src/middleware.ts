@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
 /**
  * Route protection rules:
@@ -9,7 +8,7 @@ import type { NextRequest } from "next/server";
  * Unauthenticated users are redirected to `/login`.
  * Authenticated non-admins accessing admin routes receive a 403.
  */
-export default auth((req: NextRequest & { auth: Awaited<ReturnType<typeof auth>> }) => {
+export default auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
 

@@ -1,8 +1,9 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { startOfWeek, endOfWeek, startOfDay, endOfDay } from "date-fns";
+import { startOfWeek, endOfWeek } from "date-fns";
 import { DashboardClient } from "./client";
+import type { OnboardingSteps } from "@/types";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -12,8 +13,9 @@ export default async function DashboardPage() {
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-  const todayStart = startOfDay(now);
-  const todayEnd = endOfDay(now);
+  const todayDate = new Date(
+    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
+  );
 
   const [
     githubActivities,
@@ -45,7 +47,7 @@ export default async function DashboardPage() {
       where: { userId, type: "WEEKLY", targetDate: { gte: weekStart, lte: weekEnd } },
     }),
     prisma.streak.findMany({ where: { userId } }),
-    prisma.dailyFocus.findFirst({ where: { userId, date: todayStart } }),
+    prisma.dailyFocus.findFirst({ where: { userId, date: todayDate } }),
     prisma.weeklyReport.findFirst({
       where: { userId, weekStart: weekStart },
     }),
@@ -87,7 +89,7 @@ export default async function DashboardPage() {
   const consistencyStreak = streaks.find((s) => s.type === "CONSISTENCY");
   const goalsCompleted = goals.filter((g) => g.status === "COMPLETED").length;
 
-  const onboardingSteps = onboarding?.steps as Record<string, boolean> | undefined;
+  const onboardingSteps = onboarding?.steps as OnboardingSteps | undefined;
 
   return (
     <DashboardClient

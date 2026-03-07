@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
+import { Prisma } from "@prisma/client";
 import { NextRequest } from "next/server";
 
 type ActivityType = "github" | "tweet" | "blog";
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   // Fetch GitHub activities
   if (!typeParam || typeParam === "github") {
-    const githubWhere: Parameters<typeof prisma.gitHubActivity.findMany>[0]["where"] = {
+    const githubWhere: Prisma.GitHubActivityWhereInput = {
       userId,
     };
     if (projectId) githubWhere.projectId = projectId;

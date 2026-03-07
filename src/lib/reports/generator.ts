@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { calculateDevScore } from "./scoring";
-import { startOfWeek, endOfWeek, addDays } from "date-fns";
+import { startOfWeek, endOfWeek } from "date-fns";
 
 export async function generateWeeklyReport(userId: string, weekStartDate: Date) {
   const weekStart = startOfWeek(weekStartDate, { weekStartsOn: 1 });
@@ -50,12 +51,13 @@ export async function generateWeeklyReport(userId: string, weekStartDate: Date) 
       titles: goals.map((g) => ({ title: g.title, status: g.status })),
     },
   };
+  const summaryJson = summary as unknown as Prisma.InputJsonValue;
 
   const report = await prisma.weeklyReport.upsert({
     where: { userId_weekStart: { userId, weekStart } },
     update: {
       weekEnd,
-      summary,
+      summary: summaryJson,
       highlights,
       score: scoreBreakdown.total,
       planningAccuracy,
@@ -64,7 +66,7 @@ export async function generateWeeklyReport(userId: string, weekStartDate: Date) 
       userId,
       weekStart,
       weekEnd,
-      summary,
+      summary: summaryJson,
       highlights,
       score: scoreBreakdown.total,
       planningAccuracy,

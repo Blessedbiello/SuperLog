@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
 import { goalCreateSchema } from "@/lib/utils/validation";
-import { GoalType, GoalStatus } from "@prisma/client";
+import { GoalType, GoalStatus, Prisma } from "@prisma/client";
 import { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest): Promise<Response> {
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     return errorResponse(`Invalid status. Must be one of: ${validStatuses.join(", ")}`, 400);
   }
 
-  const where: Parameters<typeof prisma.goal.findMany>[0]["where"] = {
+  const where: Prisma.GoalWhereInput = {
     userId: session.user.id,
   };
 
@@ -76,6 +76,18 @@ export async function POST(request: NextRequest): Promise<Response> {
     });
     if (!project) return errorResponse("Project not found", 404);
     if (project.userId !== session.user.id) return errorResponse("Forbidden", 403);
+  }
+
+  // Verify key-result ownership when a keyResultId is provided
+  if (parsed.data.keyResultId) {
+    const keyResult = await prisma.keyResult.findFirst({
+      where: {
+        id: parsed.data.keyResultId,
+        objective: { userId: session.user.id },
+      },
+      select: { id: true },
+    });
+    if (!keyResult) return errorResponse("Key result not found", 404);
   }
 
   const goal = await prisma.goal.create({

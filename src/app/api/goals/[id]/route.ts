@@ -34,6 +34,18 @@ export async function PUT(
     if (project.userId !== session.user.id) return errorResponse("Forbidden", 403);
   }
 
+  // Verify key-result ownership when reassigning to a different key result
+  if (parsed.data.keyResultId && parsed.data.keyResultId !== existing.keyResultId) {
+    const keyResult = await prisma.keyResult.findFirst({
+      where: {
+        id: parsed.data.keyResultId,
+        objective: { userId: session.user.id },
+      },
+      select: { id: true },
+    });
+    if (!keyResult) return errorResponse("Key result not found", 404);
+  }
+
   const updated = await prisma.goal.update({
     where: { id },
     data: parsed.data,

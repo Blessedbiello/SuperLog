@@ -24,12 +24,14 @@ export async function GET(request: NextRequest) {
   if (!report) return errorResponse("Report not found", 404);
 
   if (format === "pdf") {
+    const summary = report.summary as Parameters<typeof generateReportPDF>[0]["summary"];
     const pdfElement = generateReportPDF({
       ...report,
-      summary: report.summary as any,
+      summary,
     });
-    const buffer = await renderToBuffer(pdfElement as any);
-    return new NextResponse(buffer, {
+    const buffer = await renderToBuffer(pdfElement);
+    const pdfBytes = new Uint8Array(buffer);
+    return new NextResponse(pdfBytes, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="report-${weekStart}.pdf"`,

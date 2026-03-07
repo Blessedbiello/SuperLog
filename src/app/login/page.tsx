@@ -7,7 +7,6 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
       <div className="w-full max-w-md space-y-8 text-center">
-        {/* Branding */}
         <div className="space-y-4">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500 shadow-lg shadow-emerald-500/25">
             <Zap className="h-8 w-8 text-white" />
@@ -20,7 +19,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Sign in card */}
         <div className="rounded-2xl border border-slate-800 bg-slate-800/50 p-8 backdrop-blur">
           <h2 className="text-xl font-semibold text-white">Welcome</h2>
           <p className="mt-2 text-sm text-slate-400">
@@ -41,7 +39,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Footer */}
         <p className="text-xs text-slate-600">
           A proof-of-work operating system for Superteam Nigeria
         </p>

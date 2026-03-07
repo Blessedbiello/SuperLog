@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
 
   for (const account of accounts) {
     try {
-      const count = await syncGitHubActivities(account.userId);
-      results.push({ userId: account.userId, synced: count });
+      const result = await syncGitHubActivities(account.userId);
+      results.push({ userId: account.userId, synced: result.newActivities });
     } catch (error) {
       console.error(`Failed to sync GitHub for ${account.userId}:`, error);
     }

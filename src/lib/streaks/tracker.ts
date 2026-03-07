@@ -90,7 +90,12 @@ async function updateWritingStreak(userId: string, today: Date) {
 
   const lastActive = streak?.lastActiveDate;
   const weeksSinceLast = lastActive ? Math.floor(differenceInDays(today, lastActive) / 7) : 999;
-  const newLength = weeksSinceLast <= 1 ? (streak?.currentLength || 0) + 1 : 1;
+  const currentLength = streak?.currentLength || 0;
+  const newLength = weeksSinceLast === 0
+    ? Math.max(1, currentLength)
+    : weeksSinceLast === 1
+      ? currentLength + 1
+      : 1;
 
   await upsertStreak(userId, "WRITING", today, newLength, streak?.longestLength || 0);
 }
@@ -108,7 +113,12 @@ async function updateConsistencyStreak(userId: string, today: Date) {
 
   const lastActive = streak?.lastActiveDate;
   const weeksSinceLast = lastActive ? Math.floor(differenceInDays(today, lastActive) / 7) : 999;
-  const newLength = weeksSinceLast <= 1 ? (streak?.currentLength || 0) + 1 : 1;
+  const currentLength = streak?.currentLength || 0;
+  const newLength = weeksSinceLast === 0
+    ? Math.max(1, currentLength)
+    : weeksSinceLast === 1
+      ? currentLength + 1
+      : 1;
 
   await upsertStreak(userId, "CONSISTENCY", today, newLength, streak?.longestLength || 0);
 }
@@ -129,7 +139,12 @@ async function updatePlanningStreak(userId: string, today: Date) {
 
   const lastActive = streak?.lastActiveDate;
   const weeksSinceLast = lastActive ? Math.floor(differenceInDays(today, lastActive) / 7) : 999;
-  const newLength = weeksSinceLast <= 1 ? (streak?.currentLength || 0) + 1 : 1;
+  const currentLength = streak?.currentLength || 0;
+  const newLength = weeksSinceLast === 0
+    ? Math.max(1, currentLength)
+    : weeksSinceLast === 1
+      ? currentLength + 1
+      : 1;
 
   await upsertStreak(userId, "PLANNING", today, newLength, streak?.longestLength || 0);
 }

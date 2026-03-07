@@ -270,7 +270,7 @@ export async function handleWebhookEvent(
   payload: any
 ): Promise<void> {
   // Persist raw event first so we have a record even if processing fails
-  await prisma.webhookEvent.create({
+  const webhookEvent = await prisma.webhookEvent.create({
     data: {
       source: "github",
       eventType,
@@ -299,15 +299,8 @@ export async function handleWebhookEvent(
     }
 
     // Mark the event as processed only when the handler succeeds
-    await prisma.webhookEvent.updateMany({
-      where: {
-        source: "github",
-        eventType,
-        processed: false,
-        // Narrow to the most recently created record by using a sub-select
-        // is unavailable in Prisma; we accept a small window of false-positives
-        // and rely on idempotent upserts to keep data consistent.
-      },
+    await prisma.webhookEvent.update({
+      where: { id: webhookEvent.id },
       data: { processed: true },
     });
   } catch {
