@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: {
-    default: "SuperLog",
+    default: "SuperLog - Proof-of-Work Tracker for Superteam Nigeria",
     template: "%s | SuperLog",
   },
   description:

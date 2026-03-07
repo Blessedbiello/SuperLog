@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Github, Twitter, Bell, Shield } from "lucide-react";
+import { LocationSelector } from "./location-selector";
 
 export default async function SettingsPage() {
   const session = await auth();
@@ -12,7 +13,7 @@ export default async function SettingsPage() {
   const [user, githubAccount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { githubUsername: true, twitterHandle: true },
+      select: { githubUsername: true, twitterHandle: true, state: true },
     }),
     prisma.account.findFirst({
       where: { userId: session.user.id, provider: "github" },
@@ -62,6 +63,9 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Location */}
+      <LocationSelector currentState={user?.state || ""} />
 
       {/* Notifications */}
       <Card>

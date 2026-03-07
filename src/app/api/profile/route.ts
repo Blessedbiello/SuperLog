@@ -8,6 +8,7 @@ const profileUpdateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   bio: z.string().max(500).optional(),
   twitterHandle: z.string().max(50).optional(),
+  state: z.string().max(50).optional(),
 });
 
 export async function PUT(request: NextRequest) {

@@ -24,6 +24,7 @@ model User {
   githubUsername  String?
   twitterHandle  String?
   bio            String?
+  state          String?
   level          Int       @default(1)
   xp             Int       @default(0)
   createdAt      DateTime  @default(now())
