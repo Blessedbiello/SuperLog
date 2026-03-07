@@ -1,38 +1,53 @@
 "use client";
 
-import { useState } from "react";
-import { NIGERIA_SVG } from "./nigeria-svg-paths";
+import { useEffect, useState, useRef, useCallback } from "react";
+import dynamic from "next/dynamic";
 
 interface HeatmapData {
-  [stateId: string]: { users: number; activities: number };
+  [stateId: string]: { users: number; commits: number; content: number };
 }
 
-function getColor(activities: number): string {
-  if (activities === 0) return "#1e293b"; // slate-800
-  if (activities < 5) return "#064e3b"; // emerald-900
-  if (activities < 20) return "#047857"; // emerald-700
-  if (activities < 50) return "#10b981"; // emerald-500
-  return "#34d399"; // emerald-400
+type ActivityFilter = "all" | "commits" | "content";
+
+function getCount(
+  d: { commits: number; content: number },
+  filter: ActivityFilter
+): number {
+  if (filter === "commits") return d.commits;
+  if (filter === "content") return d.content;
+  return d.commits + d.content;
 }
 
-function getGlow(activities: number): string {
-  if (activities >= 50) return "drop-shadow(0 0 8px #10b981)";
-  return "none";
+function getColor(count: number): string {
+  if (count === 0) return "#1e293b";
+  if (count < 5) return "#064e3b";
+  if (count < 20) return "#047857";
+  if (count < 50) return "#10b981";
+  return "#34d399";
 }
+
+const filterLabels: { key: ActivityFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "commits", label: "Commits" },
+  { key: "content", label: "Content" },
+];
+
+const LeafletMap = dynamic(() => import("./nigeria-leaflet-map"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[500px] items-center justify-center rounded-xl bg-slate-900">
+      <p className="text-slate-500">Loading map...</p>
+    </div>
+  ),
+});
 
 export function NigeriaHeatmap({ data }: { data: HeatmapData }) {
-  const [tooltip, setTooltip] = useState<{
-    name: string;
-    users: number;
-    activities: number;
-    x: number;
-    y: number;
-  } | null>(null);
+  const [filter, setFilter] = useState<ActivityFilter>("all");
 
   return (
     <section className="bg-slate-950 py-20">
       <div className="mx-auto max-w-5xl px-6">
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-white sm:text-4xl">
             Activity Across Nigeria
           </h2>
@@ -41,76 +56,27 @@ export function NigeriaHeatmap({ data }: { data: HeatmapData }) {
           </p>
         </div>
 
-        <div className="relative mx-auto max-w-2xl">
-          <svg
-            viewBox="0 0 800 900"
-            className="w-full h-auto"
-            onMouseLeave={() => setTooltip(null)}
-          >
-            {Object.entries(NIGERIA_SVG).map(([id, { name, path }]) => {
-              const stateData = data[id] || { users: 0, activities: 0 };
-              return (
-                <path
-                  key={id}
-                  d={path}
-                  fill={getColor(stateData.activities)}
-                  stroke="#334155"
-                  strokeWidth="1.5"
-                  className="cursor-pointer transition-all duration-200 hover:brightness-150"
-                  style={{ filter: getGlow(stateData.activities) }}
-                  onMouseEnter={(e) => {
-                    const svg = e.currentTarget.closest("svg");
-                    if (!svg) return;
-                    const rect = svg.getBoundingClientRect();
-                    const clientX = e.clientX - rect.left;
-                    const clientY = e.clientY - rect.top;
-                    setTooltip({
-                      name,
-                      users: stateData.users,
-                      activities: stateData.activities,
-                      x: clientX,
-                      y: clientY,
-                    });
-                  }}
-                  onMouseMove={(e) => {
-                    const svg = e.currentTarget.closest("svg");
-                    if (!svg) return;
-                    const rect = svg.getBoundingClientRect();
-                    setTooltip((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            x: e.clientX - rect.left,
-                            y: e.clientY - rect.top,
-                          }
-                        : null
-                    );
-                  }}
-                  onMouseLeave={() => setTooltip(null)}
-                />
-              );
-            })}
-          </svg>
+        {/* Activity Filter Toggle */}
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex rounded-lg bg-slate-800 p-1">
+            {filterLabels.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                  filter === key
+                    ? "bg-emerald-600 text-white"
+                    : "text-slate-400 hover:text-slate-300"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-          {/* Tooltip */}
-          {tooltip && (
-            <div
-              className="pointer-events-none absolute z-20 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm shadow-xl"
-              style={{
-                left: tooltip.x + 12,
-                top: tooltip.y - 10,
-              }}
-            >
-              <p className="font-semibold text-white">{tooltip.name}</p>
-              <p className="text-slate-400">
-                {tooltip.users} developer{tooltip.users !== 1 ? "s" : ""}
-              </p>
-              <p className="text-emerald-400">
-                {tooltip.activities} contribution
-                {tooltip.activities !== 1 ? "s" : ""}
-              </p>
-            </div>
-          )}
+        <div className="relative mx-auto max-w-3xl">
+          <LeafletMap data={data} filter={filter} />
 
           {/* Legend */}
           <div className="mt-6 flex items-center justify-center gap-3 text-xs text-slate-400">

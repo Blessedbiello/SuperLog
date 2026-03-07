@@ -33,15 +33,13 @@ export const fetchHeatmapData = unstable_cache(
       },
     });
 
-    const data: Record<string, { users: number; activities: number }> = {};
+    const data: Record<string, { users: number; commits: number; content: number }> = {};
     for (const user of users) {
       const stateId = user.state!;
-      if (!data[stateId]) data[stateId] = { users: 0, activities: 0 };
+      if (!data[stateId]) data[stateId] = { users: 0, commits: 0, content: 0 };
       data[stateId].users += 1;
-      data[stateId].activities +=
-        user._count.githubActivities +
-        user._count.tweets +
-        user._count.blogPosts;
+      data[stateId].commits += user._count.githubActivities;
+      data[stateId].content += user._count.tweets + user._count.blogPosts;
     }
     return data;
   },

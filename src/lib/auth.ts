@@ -1,41 +1,47 @@
 import NextAuth from "next-auth";
-import GitHub from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 import type { Role } from "@prisma/client";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
-    GitHub({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
+    Google({
+      clientId: process.env.GOOGLE_ID!,
+      clientSecret: process.env.GOOGLE_SECRET!,
+    }),
+    Credentials({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const email = credentials?.email as string | undefined;
+        const password = credentials?.password as string | undefined;
+        if (!email || !password) return null;
+
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user?.password) return null;
+
+        const valid = await bcrypt.compare(password, user.password);
+        if (!valid) return null;
+
+        return { id: user.id, name: user.name, email: user.email, image: user.image };
+      },
     }),
   ],
   session: {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user, profile }) {
-      // On initial sign-in, `user` is populated from the database record
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: Role }).role ?? "MEMBER";
-      }
-
-      // `profile` is the raw OAuth provider payload — only present on sign-in
-      if (profile) {
-        token.githubUsername = (profile as { login?: string }).login ?? null;
-
-        // Persist githubUsername to the database on first login
-        if (token.id) {
-          await prisma.user.update({
-            where: { id: token.id as string },
-            data: {
-              githubUsername: (profile as { login?: string }).login ?? null,
-            },
-          });
-        }
       }
 
       // If role is still missing (e.g. subsequent JWT refreshes), fetch from DB

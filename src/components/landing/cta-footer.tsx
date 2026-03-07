@@ -18,7 +18,7 @@ export function CtaFooter() {
             href="/login"
             className="mt-8 inline-flex items-center gap-2 rounded-lg bg-white px-8 py-4 text-lg font-semibold text-slate-900 transition hover:bg-slate-100"
           >
-            Get Started with GitHub
+            Get Started
           </Link>
         </div>
       </section>

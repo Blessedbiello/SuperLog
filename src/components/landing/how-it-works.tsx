@@ -1,11 +1,11 @@
-import { Github, Activity, Award } from "lucide-react";
+import { UserPlus, Activity, Award } from "lucide-react";
 
 const steps = [
   {
-    icon: Github,
+    icon: UserPlus,
     number: 1,
-    title: "Connect GitHub",
-    description: "Link your GitHub account to start tracking automatically.",
+    title: "Create Account",
+    description: "Sign up with Google or email to get started.",
   },
   {
     icon: Activity,
