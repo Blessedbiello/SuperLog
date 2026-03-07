@@ -11,6 +11,7 @@ export async function GET(): Promise<Response> {
   const blogPosts = await prisma.blogPost.findMany({
     where: { userId: session.user.id },
     orderBy: { publishedAt: "desc" },
+    include: { verification: { select: { status: true } } },
   });
 
   return successResponse(blogPosts);

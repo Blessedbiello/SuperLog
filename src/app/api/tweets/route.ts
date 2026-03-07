@@ -22,6 +22,7 @@ export async function GET(): Promise<Response> {
   const tweets = await prisma.tweet.findMany({
     where: { userId: session.user.id },
     orderBy: { postedAt: "desc" },
+    include: { verification: { select: { status: true } } },
   });
 
   return successResponse(tweets);
